@@ -26,12 +26,12 @@ export const checkAvailabilityOfCar = async (req, res) => {
 
         
         // Fetch all available cars for given location 
-        const cars = await Car.find({location, isAvaliable:true})
+        const cars = await Car.find({location, isAvailable:true})
         
         // Check car availability for given date range using PROMISE
         const availableCarsPromises = cars.map(async (car)=>{
-        const isAvaliable = await checkAvailability(car._id, pickupDate, returnDate)
-        return {...car._doc, isAvailable: isAvaliable}
+        const isAvailable = await checkAvailability(car._id, pickupDate, returnDate)
+        return {...car._doc, isAvailable: isAvailable}
         })
 
         let availableCars = await Promise.all (availableCarsPromises);
