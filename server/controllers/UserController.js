@@ -9,7 +9,9 @@ const generateToken = (userId)=>{
     const payload = userId;
     return jwt.sign(payload, process.env.JWT_SECRET)
 }
-
+// const generateToken = (userId) => {
+//     return jwt.sign({ id: userId }, process.env.JWT_SECRET);
+// };
 
 // REGISTER USER 
 
@@ -90,4 +92,6 @@ export const getCars = async (req, res) => {
     }
 }
 
-    
+
+
+

@@ -15,6 +15,7 @@ const carSchema = new mongoose.Schema({
     location: {type: String, required: true},
     description: {type: String, required: true},
     isAvailable: {type: Boolean, default: true},
+    features: [{ type: String }] 
 
 },{timestamps: true})  
 

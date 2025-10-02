@@ -92,6 +92,8 @@ export const menuLinks = [
     { name: "Home", path: "/" },
     { name: "Cars", path: "/cars" },
     { name: "My Bookings", path: "/my-bookings" },
+    { name: "About", path: "/about-us" },
+    { name: "Contact", path: "/contact-us" },
 ]
 
 export const ownerMenuLinks = [

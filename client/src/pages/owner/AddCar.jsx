@@ -19,7 +19,34 @@ const [car, setCar] = useState({
   seating_capacity: 0,
   location: '',
   description: '',
-})
+   features: [],
+});
+
+// Available Features list 
+
+const availableFeatures = [
+  "Bluetooth Connectivity",
+  "GPS Smart Navigation",
+  "Sunroof",
+  "Power Steering",
+  "Rearview Camera",
+  "Air Conditioning",
+  "Leather Seats",
+  "Sound System",
+  "Parking Sensors",
+  "4WD",
+];
+
+// Handle checkbox change
+const handleFeatureChange = (feature) => {
+  setCar(prev => {
+    if (prev.features.includes(feature)) {
+      return { ...prev, features: prev.features.filter(f => f !== feature) };
+    } else {
+      return { ...prev, features: [...prev.features, feature] };
+    }
+  });
+};
 
 const [isLoading, setIsLoading] = useState(false)
 
@@ -48,6 +75,7 @@ const onSubmitHnadler = async (e)=> {
         seating_capacity: 0,
         location: '',
         description: '',
+        features: [],
       })
     } else{
       toast.error(data.message)
@@ -118,7 +146,8 @@ const onSubmitHnadler = async (e)=> {
               <option value="">Select Category</option>
               <option value="Sedan">Sedan</option>
               <option value="SUV">SUV</option>
-              <option value="Van">Van</option>              
+              <option value="Van">Van</option>  
+              <option value="Sports">Sports</option>             
             </select>
           </div>
         </div>
@@ -178,12 +207,26 @@ const onSubmitHnadler = async (e)=> {
         </div>
 
 
-        {/* Car Description            */}
+        {/* Car Description  */}
 
         <div className='flex flex-col w-full'>
             <label>DESCRIPTION</label>
             <textarea rows={6} placeholder=' e.g. A Luxurious SUV with spacious interior and a powerful engine...' required className='px-3 py-2 mt-1 border border-borderColor rounded-md outline-none' value={car.description} onChange={e => setCar({...car, description: e.target.value })}>
             </textarea>
+        </div>
+        
+        {/* FEATURES CHECKBOXES */}
+        <div className='flex flex-col w-full'>
+          <label>Features</label>
+          <div className='grid grid-cols-2 gap-2 mt-2'>
+            {availableFeatures.map((feature) => (
+            <label key={feature} className='flex items-center gap-2'>
+            <input type="checkbox" checked={car.features.includes(feature)} 
+            onChange={() => handleFeatureChange(feature)} />
+            {feature}
+            </label>
+           ))}
+          </div>
         </div>
 
         <button className='flex items-center gap-2 px-4 py-2.5 mt-4 bg-primary text-white rounded-md font-medium w-max cursor-pointer'>
@@ -191,9 +234,7 @@ const onSubmitHnadler = async (e)=> {
           {isLoading ? 'Listing...' : 'List Your Car'}
         </button>
 
-
-      </form>
-            
+      </form>      
     </div>
   )
 }

@@ -55,7 +55,7 @@ const {cars} = useAppContext()
         onClick={()=> {
             navigate('/cars'); scrollTo(0,0)
         }}
-        className=" flex items-center jsutify-center gap-2 px-6 py-2 border border-borderColor hover:ng-gray-50 rounded-md md-18 cursor-pointer">
+        className=" flex items-center jsutify-center gap-2 px-6 py-2 border border-borderColor hover:ng-gray-50 rounded-md md-18 cursor-pointer mt-15">
             Explore all Cars <img src={assets.arrow_icon} alt="arrow" />
         </motion.button>
 

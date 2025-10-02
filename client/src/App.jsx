@@ -14,6 +14,8 @@ import ManageCars from './pages/owner/ManageCars'
 import ManageBookings from './pages/owner/ManageBookings'
 import {Toaster} from "react-hot-toast"
 import { useAppContext,} from './context/AppContext'
+import AboutUs from './pages/AboutUs'
+import ContactUs from './pages/ContactUs'
 
 
 const App = () => {
@@ -35,6 +37,8 @@ const App = () => {
       <Route path='/car-details/:id' element={<CarDetails/>}/>
       <Route path='/cars' element={<Cars/>}/>
       <Route path='/my-bookings' element={<MyBookings/>}/>
+      <Route path='/about-us' element={<AboutUs/>}/>
+      <Route path='/contact-us' element={<ContactUs/>}/>
 
 
     <Route path='/owner' element={<Layout/>}>

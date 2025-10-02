@@ -5,22 +5,22 @@ import NavbarOwner from '../../components/owner/NavbarOwner'
 import { useAppContext } from '../../context/AppContext'
 
 const Layout = () => {
-  const {isOwner, navigate} = useAppContext()
+  const { isOwner, navigate } = useAppContext()
 
-  useEffect(()=> {
-    if(!isOwner){
+  useEffect(() => {
+    if (isOwner === false) {
       navigate('/')
     }
-  },[isOwner])
+  }, [isOwner])
 
 
   return (
     <div className='flex flex-col'>
-        <NavbarOwner/>
-        <div className='flex'>
-            <Sidebar/>
-            <Outlet/>
-        </div>
+      <NavbarOwner />
+      <div className='flex'>
+        <Sidebar />
+        <Outlet />
+      </div>
     </div>
   )
 }

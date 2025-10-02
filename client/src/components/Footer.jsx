@@ -16,7 +16,7 @@ const Footer = () => {
             whileInView={{opacity: 1, y:0}}
             transition={{duration: 0.6, delay: 0.2}}
 
-            className='flex flex-wrap justify-between items-start gap-8 pb-6 border-bordderColor border-b'>
+            className='flex flex-wrap justify-between items-start gap-8 pb-6 border-borderColor border-b'>
                 <div>
                     <motion.img 
                     initial={{opacity: 0}}
@@ -49,37 +49,27 @@ const Footer = () => {
             initial={{opacity: 0, y:20}}
             whileInView={{opacity: 1, y:0}}
             transition={{duration: 0.6, delay:0.4}}            
-            className='flex flex-wrap justify-between w-1/2 gap-8'>
+            className='flex flex-wrap gap-12'>
 
                 <div>
                     <h2 className='text-base font-medium text-gray-800 uppercase'>Quick Links</h2>
-                    <ul className='mt-3 flex flex-col gap-1.5'>
-                        <li><a href="#">Home</a></li>
-                        <li><a href="#">Browse Cars</a></li>
-                        <li><a href="#">List Your Car</a></li>
-                        <li><a href="#">About Us </a></li>
+                    <ul className='mt-3 flex flex-col gap-1'>
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/cars">Browse Cars</a></li>
+                        <li><a href="add-car">List Your Car</a></li>
+                        <li><a href="/AboutUs">About Us </a></li>
                     </ul>
                 </div>
 
-
-                <div>
-                    <h2 className='text-base font-medium text-gray-800 uppercase'>Resources</h2>
-                    <ul className='mt-3 flex flex-col gap-1.5'>
-                        <li><a href="#">Help Center</a></li>
-                        <li><a href="#"> Terms of Service</a></li>
-                        <li><a href="#">Privacy Policy</a></li>
-                        <li><a href="#">Insurance</a></li>
-                    </ul>
-                </div>
 
                 
                 <div>
                     <h2 className='text-base font-medium text-gray-800 uppercase'>Contact</h2>
-                    <ul className='mt-3 flex flex-col gap-1.5'>
+                    <ul className='mt-3 flex flex-col gap-1'>
                         <li><a href="#">1234 Luxury Drive</a></li>
                         <li><a href="#"> Bangalore, Karnataka</a></li>
-                        <li><a href="#">+91 9945391234</a></li>
-                        <li><a href="#">info@example.com</a></li>
+                        <li><a href="#">+91 9945391232</a></li>
+                        <li><a href="#">dreamcars@gmail.com</a></li>
                     </ul>
                 </div>
 
