@@ -11,8 +11,6 @@ const MyBookings = () => {
 
   const [bookings, setBookings] = useState([])
 
-
-
   const fetchMyBookings = async () => {
     try {
       const { data } = await axios.get('/api/bookings/user')
@@ -25,7 +23,6 @@ const MyBookings = () => {
       toast.error(error.message)
     }
   }
-
 
 const deleteBooking = async (bookingId) => {
   // 🟢 Log the booking ID being passed
