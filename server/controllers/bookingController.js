@@ -79,111 +79,6 @@ export const getOwnerBookings = async (req, res) => {
     }
 }
 
-// ===========================OLD API's without Email Setup.========================================
-// // API to change booking status 
-// export const changeBookingStatus = async (req, res) => {
-//     try {
-//         const { _id } = req.user;
-//         const { bookingId, status } = req.body
-
-//         const booking = await Booking.findById(bookingId)
-
-//         if (booking.owner.toString() !== _id.toString()) {
-//             return res.json({ success: false, message: "Unauthorized" })
-//         }
-
-//         booking.status = status;
-//         await booking.save();
-
-//         res.json({ success: true, message: "Status updated" })
-
-//     } catch (error) {
-//         console.log(error.message);
-//         res.json({ success: false, message: error.message })
-//     }
-// }
-// // API to Create Booking
-// export const createBooking = async (req, res) => {
-//     try {
-//         const { _id } = req.user;
-//         const { car, pickupDate, returnDate } = req.body;
-
-//         const isAvailable = await checkAvailability(car, pickupDate, returnDate)
-//         if (!isAvailable) {
-//             return res.json({ success: false, message: "Car is not available" })
-//         }
-
-//         const carData = await Car.findById(car)
-
-//         // Calculate price based on pickup and return date 
-//         const picked = new Date(pickupDate);
-//         const returned = new Date(returnDate);
-//         const noOfDays = Math.ceil((returned - picked) / (1000 * 60 * 60 * 24))
-//         const price = carData.pricePerDay * noOfDays;
-
-//         if (carData.owner.toString() === _id.toString()) {
-//             return res.json({ success: false, message: "Owners cannot book their own cars" });
-//         }
-//         let drivingLicenseUrl, identityCardUrl;
-//         const dlFile = req.files?.drivingLicense?.[0];
-//         const idFile = req.files?.identityCard?.[0];
-
-//         const uploadToImageKit = async (file) => {
-//             if (!file) return undefined;
-//             const fileBuffer = fs.readFileSync(file.path);
-//             const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-//             let response;
-//             try {
-//                 const existing = await imagekit.listFiles({
-//                     searchQuery: `tags IN ['hash:${fileHash}'] AND path LIKE 'bookings/'`,
-//                     limit: 1
-//                 });
-//                 if (Array.isArray(existing) && existing.length > 0) {
-//                     response = { url: existing[0].url };
-//                 }
-//             } catch (e) { }
-//             if (!response) {
-//                 response = await imagekit.upload({
-//                     file: fileBuffer,
-//                     fileName: file.originalname,
-//                     folder: '/bookings',
-//                     tags: [`hash:${fileHash}`]
-//                 });
-//             }
-//             return response.url;
-//         };
-
-//         drivingLicenseUrl = await uploadToImageKit(dlFile);
-//         identityCardUrl = await uploadToImageKit(idFile);
-
-//         // Prevent duplicate booking attempts within same date range by same user
-//         const existing = await Booking.findOne({ car, user: _id, pickupDate, returnDate })
-//         if (existing) {
-//             return res.json({ success: true, message: "Booking Created" })
-//         }
-
-//         await Booking.create({
-//             car,
-//             owner: carData.owner,
-//             user: _id,
-//             pickupDate,
-//             returnDate,
-//             price,
-//             documents: {
-//                 drivingLicenseUrl,
-//                 identityCardUrl
-//             }
-//         })
-//         res.json({ success: true, message: "Booking Created" })
-
-//     } catch (error) {
-//         console.log(error.message);
-//         res.json({ success: false, message: error.message })
-
-//     }
-// }
-
-
 // ===========================NEW API's with Email Setup.========================================
 // ====================== CREATE BOOKING ======================
 export const createBooking = async (req, res) => {
@@ -464,50 +359,73 @@ export const changeBookingStatus = async (req, res) => {
   }
 };
 
-
-
-// // ====================== DELETE BOOKING ======================
+// ====================== DELETE BOOKING without EMAIL======================
 // export const deleteBooking = async (req, res) => {
 //   try {
-//     const { _id } = req.user;                   // logged-in user
-//     const { bookingId } = req.params.id;           // booking to delete
+//     // 🔹 Logged-in user
+//     const { _id } = req.user;
 
+//     // 🔹 Booking ID from route param
+//     const bookingId = req.params.id;
+//     console.log("🆔 Booking ID to delete:", bookingId);
+//     console.log("👤 Logged-in user ID:", _id);
+
+//     // 🔹 Find the booking
 //     const booking = await Booking.findById(bookingId);
+//     console.log("📦 Booking found:", booking);
+
 //     if (!booking) {
+//       console.warn("⚠️ Booking not found");
 //       return res.json({ success: false, message: "Booking not found" });
 //     }
 
-//     // ✅ Only booking owner (user who created) OR car owner can delete
+//     // 🔹 Check if user is authorized to delete
 //     if (
 //       booking.user.toString() !== _id.toString() &&
 //       booking.owner.toString() !== _id.toString()
 //     ) {
+//       console.warn("❌ Unauthorized delete attempt");
 //       return res.json({ success: false, message: "Unauthorized" });
 //     }
 
+//     // 🔹 Delete the booking
 //     await Booking.findByIdAndDelete(bookingId);
+//     console.log("✅ Booking deleted successfully");
 
+//     // 🔹 Send success response
 //     return res.json({ success: true, message: "Booking deleted successfully" });
+
 //   } catch (error) {
-//     console.error(error);
-//     res.json({ success: false, message: error.message });
+//     console.error("🔥 Error deleting booking:", error);
+//     return res.json({ success: false, message: error.message });
 //   }
 // };
 
-// ====================== DELETE BOOKING ======================
+// ====================== DELETE BOOKING with EMAIL ======================
 export const deleteBooking = async (req, res) => {
   try {
     // 🔹 Logged-in user
-    const { _id } = req.user;
+    const { _id, role } = req.user;
 
     // 🔹 Booking ID from route param
     const bookingId = req.params.id;
     console.log("🆔 Booking ID to delete:", bookingId);
     console.log("👤 Logged-in user ID:", _id);
+    console.log("🎭 User role:", role);
 
-    // 🔹 Find the booking
-    const booking = await Booking.findById(bookingId);
-    console.log("📦 Booking found:", booking);
+    // 🔹 Find the booking with populated data for email notifications
+    const booking = await Booking.findById(bookingId)
+      .populate("car")
+      .populate("user", "name email")
+      .populate("owner", "name email");
+    
+    console.log("📦 Booking found:", booking ? {
+      id: booking._id,
+      car: booking.car?.brand + " " + booking.car?.model,
+      user: booking.user?.name,
+      owner: booking.owner?.name,
+      status: booking.status
+    } : "Not found");
 
     if (!booking) {
       console.warn("⚠️ Booking not found");
@@ -515,24 +433,129 @@ export const deleteBooking = async (req, res) => {
     }
 
     // 🔹 Check if user is authorized to delete
-    if (
-      booking.user.toString() !== _id.toString() &&
-      booking.owner.toString() !== _id.toString()
-    ) {
+    const isUser = booking.user?._id?.toString() === _id.toString();
+    const isOwner = booking.owner?._id?.toString() === _id.toString();
+    const isAdmin = role === 'admin';
+
+    console.log("🔐 Authorization check:", { isUser, isOwner, isAdmin });
+
+    if (!isUser && !isOwner && !isAdmin) {
       console.warn("❌ Unauthorized delete attempt");
       return res.json({ success: false, message: "Unauthorized" });
     }
+
+    // 🔹 Store booking details for email before deletion
+    const bookingDetails = {
+      car: `${booking.car?.brand} ${booking.car?.model}`,
+      price: booking.price,
+      pickupDate: booking.pickupDate,
+      returnDate: booking.returnDate,
+      status: booking.status,
+      userName: booking.user?.name,
+      userEmail: booking.user?.email,
+      ownerName: booking.owner?.name,
+      ownerEmail: booking.owner?.email,
+      deletedBy: req.user.name || req.user.email,
+      deletedByRole: role
+    };
+
+    console.log("📝 Stored booking details for email:", bookingDetails);
 
     // 🔹 Delete the booking
     await Booking.findByIdAndDelete(bookingId);
     console.log("✅ Booking deleted successfully");
 
+    // 🔹 Send email notifications
+    try {
+      // Determine who initiated the deletion and send appropriate emails
+      if (isOwner || isAdmin) {
+        // Owner/Admin deleted the booking - notify user
+        console.log("📧 Sending deletion email to user:", bookingDetails.userEmail);
+        
+        await sendEmail({
+          to: bookingDetails.userEmail,
+          subject: "Your Booking Has Been Cancelled - Ridemate",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <img src="https://your-imagekit-url/ridemate-logo.png" alt="Ridemate Logo" width="120" style="margin-bottom: 16px;" />
+              </div>
+              <h3 style="color: #e74c3c;">Booking Cancelled</h3>
+              <p>Your booking has been cancelled by ${bookingDetails.deletedBy} (${bookingDetails.deletedByRole}).</p>
+              
+              <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h4 style="margin-top: 0; color: #2c3e50;">Booking Details:</h4>
+                <p><strong>Car:</strong> ${bookingDetails.car}</p>
+                <p><strong>Price:</strong> $${bookingDetails.price}</p>
+                <p><strong>Pickup Date:</strong> ${new Date(bookingDetails.pickupDate).toLocaleDateString()}</p>
+                <p><strong>Return Date:</strong> ${new Date(bookingDetails.returnDate).toLocaleDateString()}</p>
+                <p><strong>Cancelled By:</strong> ${bookingDetails.deletedBy} (${bookingDetails.deletedByRole})</p>
+              </div>
+              
+              <p>If you have any questions, please contact our support team.</p>
+              <p style="color: #7f8c8d; font-size: 14px; margin-top: 20px;">
+                Best regards,<br>The Ridemate Team
+              </p>
+            </div>
+          `,
+        });
+        console.log("✅ Deletion email sent to user");
+
+      } else if (isUser) {
+        // User deleted their own booking - notify owner
+        console.log("📧 Sending deletion email to owner:", bookingDetails.ownerEmail);
+        
+        await sendEmail({
+          to: bookingDetails.ownerEmail,
+          subject: "Booking Cancelled by User - Ridemate",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <img src="https://your-imagekit-url/ridemate-logo.png" alt="Ridemate Logo" width="120" style="margin-bottom: 16px;" />
+              </div>
+              <h3 style="color: #e74c3c;">Booking Cancelled</h3>
+              <p>A user has cancelled their booking for your car.</p>
+              
+              <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h4 style="margin-top: 0; color: #2c3e50;">Booking Details:</h4>
+                <p><strong>Car:</strong> ${bookingDetails.car}</p>
+                <p><strong>Price:</strong> $${bookingDetails.price}</p>
+                <p><strong>Pickup Date:</strong> ${new Date(bookingDetails.pickupDate).toLocaleDateString()}</p>
+                <p><strong>Return Date:</strong> ${new Date(bookingDetails.returnDate).toLocaleDateString()}</p>
+                <p><strong>Cancelled By:</strong> ${bookingDetails.userName} (User)</p>
+              </div>
+              
+              <p>Your car is now available for other bookings.</p>
+              <p style="color: #7f8c8d; font-size: 14px; margin-top: 20px;">
+                Best regards,<br>The Ridemate Team
+              </p>
+            </div>
+          `,
+        });
+        console.log("✅ Deletion email sent to owner");
+      }
+
+      // Optional: Send notification to admin for record keeping
+      if (role !== 'admin') {
+        console.log("📧 Sending admin notification");
+        // You can add admin email here if needed
+        // await sendEmail({ to: 'admin@ridemate.com', ... });
+      }
+
+    } catch (emailError) {
+      console.error("❌ Failed to send deletion emails:", emailError.message);
+      // Don't fail the deletion if emails fail, just log the error
+    }
+
     // 🔹 Send success response
-    return res.json({ success: true, message: "Booking deleted successfully" });
+    return res.json({ 
+      success: true, 
+      message: "Booking deleted successfully",
+      notification: "All parties have been notified via email"
+    });
 
   } catch (error) {
     console.error("🔥 Error deleting booking:", error);
     return res.json({ success: false, message: error.message });
   }
 };
-
