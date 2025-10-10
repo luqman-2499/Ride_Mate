@@ -8,23 +8,23 @@ const Testimonial = () => {
         const testimonials = [
 
         { 
-            name: "Naqeeb Khan", 
+            name: "Jamie", 
             location: "Bangalore, India", 
             image: assets.testimonial_image_1, 
             testimonial: "Exceptional service and attention to detail. Everything was handled professionally and efficiently from start to finish. Highly recommended!" 
         },
 
         { 
-            name: "Farhan Khan", 
+            name: "Robert", 
             location: "Dubai, UAE", 
-            image: assets.testimonial_image_2, 
+            image: assets.user_profile, 
             testimonial: "Exceptional service and attention to detail. Everything was handled professionally and efficiently from start to finish. Highly recommended!" 
         },
 
         { 
-            name: "Robert", 
+            name: "Eliza", 
             location: "Barcelona, Spain", 
-            image: assets.user_profile, 
+            image: assets.testimonial_image_2, 
             testimonial: "Exceptional service and attention to detail. Everything was handled professionally and efficiently from start to finish. Highly recommended!" 
         },
 
