@@ -24,53 +24,6 @@ const CarDetails = () => {
   const [car, setCar] = useState(null);
   const currency = import.meta.env.VITE_CURRENCY;
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-
-  //   if (isSubmitting) return;
-  //   setIsSubmitting(true);
-  //   const loadingId = toast.loading('Creating booking...');
-
-  //   if (!user) {
-  //     toast.error("Login to Book a Car", { id: loadingId });
-  //     setShowLogin(true);
-  //     setIsSubmitting(false);
-  //     return;
-  //   }
-
-  //   if (car?.owner === JSON.parse(localStorage.getItem("user"))?._id) {
-  //     toast.error("Owner cannot book their own car!");
-  //     return; // stop here, don't call API
-  //   }
-  //   try {
-  //     const formData = new FormData();
-  //     formData.append('car', id);
-  //     formData.append('pickupDate', pickupDate);
-  //     formData.append('returnDate', returnDate);
-  //     if (licenseFile) formData.append('drivingLicense', licenseFile);
-  //     if (idCardFile) formData.append('identityCard', idCardFile);
-
-  //     const { data } = await axios.post('/api/bookings/create', formData, {
-  //       headers: { 'Content-Type': 'multipart/form-data' }
-  //     });
-
-  //     if (data.success) {
-  //       toast.success(data.message || 'Booking Created', { id: loadingId })
-  //       navigate('/my-bookings')
-  //       // Trigger Email.
-  //     } else {
-  //       toast.error(data.message || 'Failed to create booking', { id: loadingId })
-  //     }
-  //   } catch (error) {
-  //     toast.error(error.message, { id: loadingId })
-
-  //   }
-  //   setIsSubmitting(false);
-  // };
-
-  // useEffect(()=>{
-  //   setCar(car.find(car => car._id === id))
-  // }, [cars, id])
 
   const handleSubmit = async (e) => {
     e.preventDefault();
