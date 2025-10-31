@@ -24,52 +24,45 @@ const MyBookings = () => {
     }
   }
 
+
 const deleteBooking = async (bookingId) => {
-  // 🟢 Log the booking ID being passed
   console.log("🆔 Booking ID to delete:", bookingId);
 
-  // 🟢 Ask for confirmation before proceeding
   const confirmed = window.confirm("Are you sure you want to delete the booking?");
-  console.log("✅ User confirmation:", confirmed);
+  if (!confirmed) return;
 
-  if (!confirmed) {
-    console.log("❌ Deletion canceled by user.");
-    return; // Stop execution if user clicks "Cancel"
-  }
+  // 🟢 OPTIMISTIC UPDATE - Remove immediately from UI
+  console.log("⚡ Optimistic UI update - removing booking immediately");
+  setBookings(prevBookings => {
+    const updatedBookings = prevBookings.filter(b => b._id !== bookingId);
+    console.log("🔄 UI updated instantly");
+    return updatedBookings;
+  });
 
   try {
-    // 🟢 Send DELETE request to the backend API
-    console.log("📡 Sending DELETE request to: ", `/api/bookings/user/${bookingId}`);
-    
+    console.log("📡 Sending DELETE request...");
     const { data } = await axios.delete(`/api/bookings/user/${bookingId}`);
-
-    // 🟢 Log the full response from the server
     console.log("📥 Response from server:", data);
 
-    // 🟢 If deletion is successful
-    if (data.success) {
-      console.log("✅ Booking deleted successfully on the server.");
-
-      // Show success toast to the user
-      toast.success("Your Booking has been Deleted");
-
-      // 🟢 Update local state by removing deleted booking
-      console.log("📝 Removing deleted booking from local state...");
-      setBookings(bookings.filter(b => b._id !== bookingId));
-
-      // 🟢 Log the updated bookings array
-      console.log("📦 Updated bookings after deletion:", bookings.filter(b => b._id !== bookingId));
+    if (!data.success) {
+      // 🟢 If API fails, revert the optimistic update
+      console.log("❌ API failed - reverting UI");
+      toast.error("Failed to delete booking");
+      // You might want to refetch bookings here
+      user && fetchMyBookings();
     } else {
-      console.error("⚠️ Deletion failed:", data.message || "Unknown error");
-      toast.error(data.message || "Failed to delete booking");
+      console.log("✅ Server confirmed deletion");
+      toast.success("Your Booking has been Deleted");
     }
 
   } catch (error) {
-    // 🟢 Handle any network or server errors
     console.error("🔥 Error while deleting booking:", error);
-    toast.error(error.message);
+    toast.error("Failed to delete booking");
+    // 🟢 Revert on error too
+    user && fetchMyBookings();
   }
 };
+
 
   useEffect(() => {
     user && fetchMyBookings()
