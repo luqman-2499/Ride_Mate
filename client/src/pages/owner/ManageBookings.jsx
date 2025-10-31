@@ -60,7 +60,7 @@ const ManageBookings = () => {
   //   }
   // }
 
-  const changeBookingStatus = async (bookingId, status) => {
+const changeBookingStatus = async (bookingId, status) => {
   if (updatingId) {
     console.log("⚠️ Already updating, please wait")
     return
@@ -70,16 +70,18 @@ const ManageBookings = () => {
   setUpdatingId(bookingId)
 
   try {
-    const { data } = await axios.post('/api/bookings/change-status', { bookingId, status })
+    // 🟢 ADD TIMEOUT
+    const { data } = await axios.post('/api/bookings/change-status', 
+      { bookingId, status },
+      { timeout: 5000 } // 5 seconds timeout
+    )
     console.log("📩 API Response:", data)
     
     if (data.success) {
       toast.success(data.message)
       
-      // 🟢 DEBUG: Check what the API actually returned
       console.log("🔍 API returned booking:", data.booking)
       
-      // 🟢 Use API response data instead of optimistic update
       if (data.booking) {
         setBookings(prevBookings => {
           const updatedBookings = prevBookings.map(booking => 
@@ -89,7 +91,6 @@ const ManageBookings = () => {
           return updatedBookings
         })
       } else {
-        // Fallback to optimistic update
         setBookings(prevBookings => {
           const updatedBookings = prevBookings.map(booking => 
             booking._id === bookingId ? { ...booking, status } : booking
@@ -104,15 +105,20 @@ const ManageBookings = () => {
     }
   } catch (error) {
     console.log("🔥 API Error:", error)
-    toast.error(error.message)
     
-    // 🟢 Revert optimistic update on error
-    fetchOwnerBookings() // Refetch to sync with server
+    // 🟢 SPECIFIC ERROR MESSAGES
+    if (error.code === 'ECONNABORTED') {
+      toast.error("Request timeout - please try again")
+    } else {
+      toast.error(error.message)
+    }
+    
+    // Revert optimistic update on error
+    fetchOwnerBookings()
   } finally {
     setUpdatingId(null)
   }
 }
-
 
   useEffect(() => {
     fetchOwnerBookings()

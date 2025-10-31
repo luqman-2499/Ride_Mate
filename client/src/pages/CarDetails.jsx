@@ -228,62 +228,70 @@ const CarDetails = () => {
     return;
   }
 
-  try {
-    console.log("🛠 Preparing FormData...");
-    const formData = new FormData();
-    formData.append("car", id);
-    formData.append("pickupDate", pickupDate);
-    formData.append("returnDate", returnDate);
+try {
+  console.log("🛠 Preparing FormData...");
+  const formData = new FormData();
+  formData.append("car", id);
+  formData.append("pickupDate", pickupDate);
+  formData.append("returnDate", returnDate);
 
-    // 🟢 COMPRESS AND APPEND FILES
-    if (licenseFile) {
-      console.log("📎 Compressing license file...");
-      const compressedLicense = await compressImage(licenseFile);
-      formData.append("drivingLicense", compressedLicense, "license.jpg");
-    }
-    if (idCardFile) {
-      console.log("📎 Compressing ID card file...");
-      const compressedIdCard = await compressImage(idCardFile);
-      formData.append("identityCard", compressedIdCard, "idcard.jpg");
-    }
-
-    console.log("🚀 Sending POST request to /api/bookings/create...");
-    const startTime = Date.now();
-    const { data } = await axios.post("/api/bookings/create", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    const endTime = Date.now();
-    console.log(`⏱️ API response time: ${endTime - startTime}ms`);
-
-    console.log("📩 Response from backend:", data);
-
-    if (data.success) {
-      console.log("✅ Booking successful. Navigating to /my-bookings");
-      toast.success(data.message || "Booking Created", { id: loadingId });
-      
-      // 🟢 FIX: Reset state BEFORE navigation
-      setIsSubmitting(false);
-      console.log("🔄 Reset isSubmitting = false BEFORE navigation");
-      
-      navigate("/my-bookings");
-    } else {
-      console.log("❌ Booking failed:", data.message);
-      toast.error(data.message || "Failed to create booking", {
-        id: loadingId,
-      });
-    }
-  } catch (error) {
-    console.log("🔥 API error:", error);
-    toast.error(error.message, { id: loadingId });
-  } finally {
-    // 🟢 Only reset if not already reset (for success case)
-    if (isSubmitting) {
-      setIsSubmitting(false);
-      console.log("🔄 Reset isSubmitting = false (finally block)");
-    }
+  // 🟢 COMPRESS AND APPEND FILES
+  if (licenseFile) {
+    console.log("📎 Compressing license file...");
+    const compressedLicense = await compressImage(licenseFile);
+    formData.append("drivingLicense", compressedLicense, "license.jpg");
   }
-};
+  if (idCardFile) {
+    console.log("📎 Compressing ID card file...");
+    const compressedIdCard = await compressImage(idCardFile);
+    formData.append("identityCard", compressedIdCard, "idcard.jpg");
+  }
 
+  console.log("🚀 Sending POST request to /api/bookings/create...");
+  const startTime = Date.now();
+  
+  // 🟢 ADD TIMEOUT FOR DEPLOYED ENVIRONMENT
+  const { data } = await axios.post("/api/bookings/create", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 5000, // 5 seconds timeout
+  });
+  
+  const endTime = Date.now();
+  console.log(`⏱️ API response time: ${endTime - startTime}ms`);
+
+  console.log("📩 Response from backend:", data);
+
+  if (data.success) {
+    console.log("✅ Booking successful. Navigating to /my-bookings");
+    toast.success(data.message || "Booking Created", { id: loadingId });
+    
+    // 🟢 FIX: Reset state BEFORE navigation
+    setIsSubmitting(false);
+    console.log("🔄 Reset isSubmitting = false BEFORE navigation");
+    
+    navigate("/my-bookings");
+  } else {
+    console.log("❌ Booking failed:", data.message);
+    toast.error(data.message || "Failed to create booking", {
+      id: loadingId,
+    });
+  }
+} catch (error) {
+  console.log("🔥 API error:", error);
+  
+  // 🟢 SPECIFIC ERROR HANDLING
+  if (error.code === 'ECONNABORTED') {
+    toast.error("Request timeout - please try again", { id: loadingId });
+  } else {
+    toast.error(error.message, { id: loadingId });
+  }
+} finally {
+  // 🟢 Only reset if not already reset (for success case)
+  if (isSubmitting) {
+    setIsSubmitting(false);
+    console.log("🔄 Reset isSubmitting = false (finally block)");
+  }
+}
 
   useEffect(() => {
     const selectedCar = cars.find((car) => car._id === id);
