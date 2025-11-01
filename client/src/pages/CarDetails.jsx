@@ -106,6 +106,7 @@ const CarDetails = () => {
       } else {
         console.log("❌ Booking failed:", data.message);
         toast.error(data.message || "Failed to create booking", { id: loadingId });
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.log("🔥 API error:", error);

@@ -4,7 +4,7 @@ import { useAppContext } from '../../context/AppContext'
 import toast from 'react-hot-toast'
 
 const ManageBookings = () => {
-  const { axios, currency } = useAppContext()
+  const { axios, currency, user, isOwner } = useAppContext() 
   const [bookings, setBookings] = useState([])
   const [updatingId, setUpdatingId] = useState(null)
 
@@ -24,105 +24,89 @@ const ManageBookings = () => {
     }
   }
 
-  // const changeBookingStatus = async (bookingId, status) => {
-  //   if (updatingId) {
-  //     console.log("⚠️ Already updating, please wait")
-  //     return
-  //   }
+  // 🟢 ADD AUTH CHECK BEFORE FETCHING
+  useEffect(() => {
+    console.log("🔐 ManageBookings auth check - isOwner:", isOwner, "user:", user)
     
-  //   console.log("🟢 Changing status for:", bookingId, "to:", status)
-  //   setUpdatingId(bookingId)
+    if (isOwner === true && user) {
+      console.log("🟢 Auth confirmed, fetching bookings...")
+      fetchOwnerBookings()
+    } else {
+      console.log("⏳ Waiting for auth...")
+    }
+  }, [isOwner, user]) // 🟢 DEPEND ON AUTH STATE
 
-  //   try {
-  //     const { data } = await axios.post('/api/bookings/change-status', { bookingId, status })
-  //     console.log("📩 API Response:", data)
-      
-  //     if (data.success) {
-  //       toast.success(data.message)
-        
-  //       // 🟢 OPTIMISTIC UPDATE - Update UI immediately
-  //       setBookings(prevBookings => {
-  //         const updatedBookings = prevBookings.map(booking => 
-  //           booking._id === bookingId ? { ...booking, status } : booking
-  //         )
-  //         console.log("🔄 UI updated - Status changed to:", status)
-  //         return updatedBookings
-  //       })
-        
-  //     } else {
-  //       toast.error(data.message)
-  //     }
-  //   } catch (error) {
-  //     console.log("🔥 API Error:", error)
-  //     toast.error(error.message)
-  //   } finally {
-  //     setUpdatingId(null) // 🟢 Always reset
-  //   }
-  // }
-
-const changeBookingStatus = async (bookingId, status) => {
-  if (updatingId) {
-    console.log("⚠️ Already updating, please wait")
-    return
-  }
-  
-  console.log("🟢 Changing status for:", bookingId, "to:", status)
-  setUpdatingId(bookingId)
-
-  try {
-    // 🟢 ADD TIMEOUT
-    const { data } = await axios.post('/api/bookings/change-status', 
-      { bookingId, status },
-      { timeout: 5000 } // 5 seconds timeout
-    )
-    console.log("📩 API Response:", data)
+  const changeBookingStatus = async (bookingId, status) => {
+    if (updatingId) {
+      console.log("⚠️ Already updating, please wait")
+      return
+    }
     
-    if (data.success) {
-      toast.success(data.message)
+    console.log("🟢 Changing status for:", bookingId, "to:", status)
+    setUpdatingId(bookingId)
+
+    try {
+      // 🟢 ADD TIMEOUT
+      const { data } = await axios.post('/api/bookings/change-status', 
+        { bookingId, status },
+        { timeout: 5000 } // 5 seconds timeout
+      )
+      console.log("📩 API Response:", data)
       
-      console.log("🔍 API returned booking:", data.booking)
-      
-      if (data.booking) {
-        setBookings(prevBookings => {
-          const updatedBookings = prevBookings.map(booking => 
-            booking._id === bookingId ? { ...booking, ...data.booking } : booking
-          )
-          console.log("🔄 UI updated with API data")
-          return updatedBookings
-        })
+      if (data.success) {
+        toast.success(data.message)
+        
+        console.log("🔍 API returned booking:", data.booking)
+        
+        if (data.booking) {
+          setBookings(prevBookings => {
+            const updatedBookings = prevBookings.map(booking => 
+              booking._id === bookingId ? { ...booking, ...data.booking } : booking
+            )
+            console.log("🔄 UI updated with API data")
+            return updatedBookings
+          })
+        } else {
+          setBookings(prevBookings => {
+            const updatedBookings = prevBookings.map(booking => 
+              booking._id === bookingId ? { ...booking, status } : booking
+            )
+            console.log("🔄 UI updated with optimistic data")
+            return updatedBookings
+          })
+        }
+        
       } else {
-        setBookings(prevBookings => {
-          const updatedBookings = prevBookings.map(booking => 
-            booking._id === bookingId ? { ...booking, status } : booking
-          )
-          console.log("🔄 UI updated with optimistic data")
-          return updatedBookings
-        })
+        toast.error(data.message)
+      }
+    } catch (error) {
+      console.log("🔥 API Error:", error)
+      
+      // 🟢 SPECIFIC ERROR MESSAGES
+      if (error.code === 'ECONNABORTED') {
+        toast.error("Request timeout - please try again")
+      } else {
+        toast.error(error.message)
       }
       
-    } else {
-      toast.error(data.message)
+      // Revert optimistic update on error
+      fetchOwnerBookings()
+    } finally {
+      setUpdatingId(null)
     }
-  } catch (error) {
-    console.log("🔥 API Error:", error)
-    
-    // 🟢 SPECIFIC ERROR MESSAGES
-    if (error.code === 'ECONNABORTED') {
-      toast.error("Request timeout - please try again")
-    } else {
-      toast.error(error.message)
-    }
-    
-    // Revert optimistic update on error
-    fetchOwnerBookings()
-  } finally {
-    setUpdatingId(null)
   }
-}
 
-  useEffect(() => {
-    fetchOwnerBookings()
-  }, [])
+  // 🟢 ADD LOADING STATE WHILE WAITING FOR AUTH
+  if (isOwner === false || !user) {
+    return (
+      <div className='px-4 pt-10 md:px-10 w-full'>
+        <Title title="Manage Bookings" subTitle=" Track all customer bookings, approve or cancel requests and manage status" />
+        <div className="flex justify-center items-center h-40">
+          <div className="text-xl">Checking authentication...</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className='px-4 pt-10 md:px-10 w-full'>

@@ -15,7 +15,14 @@ const app = express()
 await connectDB()
 
 // Middleware 
-app.use (cors());
+// Middleware 
+app.use(cors({
+  origin: [
+    'http://localhost:5173', // Local
+    'https://ride-mate-sepia.vercel.app' // Your Vercel domain
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 app.get('/', (req, res)=> res.send("Server is Running"))
