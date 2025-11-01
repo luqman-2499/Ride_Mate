@@ -26,49 +26,6 @@ const CarDetails = () => {
   const [idCardFile, setIdCardFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🟢 Image compression function
-  const compressImage = (file) => {
-    return new Promise((resolve) => {
-      console.log("📦 Original file size:", (file.size / 1024 / 1024).toFixed(2), "MB");
-      
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          let { width, height } = img;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          canvas.toBlob((blob) => {
-            console.log("📦 Compressed file size:", (blob.size / 1024 / 1024).toFixed(2), "MB");
-            resolve(blob);
-          }, 'image/jpeg', 0.7);
-        };
-      };
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("🟢 handleSubmit triggered");
@@ -106,23 +63,6 @@ const CarDetails = () => {
       return;
     }
 
-    // 🟢 FILE SIZE VALIDATION
-    const MAX_FILE_SIZE = 2 * 1024 * 1024;
-
-    if (licenseFile && licenseFile.size > MAX_FILE_SIZE) {
-      console.log("❌ License file too large:", (licenseFile.size / 1024 / 1024).toFixed(2), "MB");
-      toast.error("License file too large (max 2MB)", { id: loadingId });
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (idCardFile && idCardFile.size > MAX_FILE_SIZE) {
-      console.log("❌ ID card file too large:", (idCardFile.size / 1024 / 1024).toFixed(2), "MB");
-      toast.error("ID card file too large (max 2MB)", { id: loadingId });
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
       console.log("🛠 Preparing FormData...");
       const formData = new FormData();
@@ -130,25 +70,23 @@ const CarDetails = () => {
       formData.append("pickupDate", pickupDate);
       formData.append("returnDate", returnDate);
 
-      // 🟢 COMPRESS AND APPEND FILES
+      // 🟢 APPEND FILES DIRECTLY (no compression)
       if (licenseFile) {
-        console.log("📎 Compressing license file...");
-        const compressedLicense = await compressImage(licenseFile);
-        formData.append("drivingLicense", compressedLicense, "license.jpg");
+        console.log("📎 Appending license file:", licenseFile.name);
+        formData.append("drivingLicense", licenseFile);
       }
       if (idCardFile) {
-        console.log("📎 Compressing ID card file...");
-        const compressedIdCard = await compressImage(idCardFile);
-        formData.append("identityCard", compressedIdCard, "idcard.jpg");
+        console.log("📎 Appending ID card file:", idCardFile.name);
+        formData.append("identityCard", idCardFile);
       }
 
       console.log("🚀 Sending POST request to /api/bookings/create...");
       const startTime = Date.now();
       
-      // 🟢 ADD TIMEOUT FOR DEPLOYED ENVIRONMENT
+      // 🟢 INCREASED TIMEOUT FOR RENDER
       const { data } = await axios.post("/api/bookings/create", formData, {
         headers: { "Content-Type": "multipart/form-data" },
-        timeout: 5000, // 5 seconds timeout
+        timeout: 15000, // 15 seconds for slow Render
       });
       
       const endTime = Date.now();
@@ -372,3 +310,5 @@ const CarDetails = () => {
 };
 
 export default CarDetails;
+
+
