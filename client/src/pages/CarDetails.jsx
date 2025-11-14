@@ -86,7 +86,7 @@ const CarDetails = () => {
       // 🟢 INCREASED TIMEOUT FOR RENDER
       const { data } = await axios.post("/api/bookings/create", formData, {
         headers: { "Content-Type": "multipart/form-data" },
-        timeout: 15000, // 15 seconds for slow Render
+        timeout: 30000, // 30 seconds for slow Render
       });
       
       const endTime = Date.now();

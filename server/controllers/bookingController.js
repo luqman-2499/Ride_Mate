@@ -1,4 +1,3 @@
-// Function to check Availability of car for a given Date 
 import Booking from "../models/Booking.js"
 import Car from "../models/Car.js";
 import imagekit from "../configs/imageKit.js";
@@ -9,8 +8,8 @@ import crypto from "crypto";
 import User from "../models/User.js";
 import { sendEmail } from "../utils/emailService.js";
 
-// 🟢 EMAIL MODE SETTING - Change this for local/deployment
-const EMAIL_ENABLED = process.env.NODE_ENV === 'development'; // true for local, false for deployed
+
+const EMAIL_ENABLED = process.env.EMAIL_ENABLED=true; // true for local, false for deployed
 
 const checkAvailability = async (car, pickupDate, returnDate) => {
     const bookings = await Booking.find({
@@ -108,41 +107,41 @@ export const getOwnerBookings = async (req, res) => {
 export const createBooking = async (req, res) => {
   try {
     console.log("createBooking: called");
-    console.log("📧 Email Mode:", EMAIL_ENABLED ? "ENABLED (Local)" : "DISABLED (Deployed)");
+    console.log("📧 Email Mode:", EMAIL_ENABLED ? "ENABLED" : "DISABLED");
 
     const { _id } = req.user;
     const { car, pickupDate, returnDate } = req.body;
 
-    // 🟢 ADD BACK ALL THIS MISSING LOGIC:
+    // 🟢 Availability check
     console.log("createBooking: checking availability for car:", car);
     const isAvailable = await checkAvailability(car, pickupDate, returnDate);
     if (!isAvailable) {
       return res.json({ success: false, message: "Car is not available" });
     }
 
-    // 🟢 THIS IS CRITICAL - FETCH carData
+    // 🟢 Fetch carData
     console.log("createBooking: fetching carData from DB");
     const carData = await Car.findById(car).populate("owner", "email name");
 
-    // 🟢 OWNER CHECK
+    // 🟢 Owner check
     const ownerIdStr = carData?.owner?._id?.toString();
     if (ownerIdStr === _id.toString()) {
       return res.json({ success: false, message: "Owners cannot book their own cars" });
     }
 
-    // 🟢 PRICE CALCULATION
+    // 🟢 Price calculation
     const picked = new Date(pickupDate);
     const returned = new Date(returnDate);
     const timeDiffMs = returned - picked;
     const noOfDays = Math.ceil(timeDiffMs / (1000 * 60 * 60 * 24));
     const price = (carData?.pricePerDay || 0) * noOfDays;
 
-    // 🟢 FILE UPLOADS - ADD THIS BACK
+    // 🟢 FILE UPLOADS
     let drivingLicenseUrl, identityCardUrl;
     const dlFile = req.files?.drivingLicense?.[0];
     const idFile = req.files?.identityCard?.[0];
 
-    // 🟢 ADD BACK FILE UPLOAD LOGIC
+    // 🟢 File upload logic
     const uploadToImageKit = async (file) => {
       if (!file) return undefined;
       const fileBuffer = fs.readFileSync(file.path);
@@ -198,15 +197,16 @@ export const createBooking = async (req, res) => {
       return res.json({ success: true, message: "Booking Created" });
     }
 
-    // THEN CONTINUE WITH YOUR EXISTING CODE...
+    // Create booking
     console.log("createBooking: creating booking in DB");
     console.log("🟢 CAR OWNER DEBUG:");
     console.log("🟢 Car owner ID:", carData.owner._id);
     console.log("🟢 Car owner name:", carData.owner.name);
     console.log("🟢 Car owner email:", carData.owner.email);
+    
     const booking = await Booking.create({
       car,
-      owner: carData.owner._id, // 🟢 NOW carData EXISTS!
+      owner: carData.owner._id,
       user: _id,
       pickupDate,
       returnDate,
@@ -219,62 +219,56 @@ export const createBooking = async (req, res) => {
     });
     console.log("🟢 Booking created with owner ID:", booking.owner);
 
-    // 🟢 DUAL MODE EMAIL HANDLING
+    // 🟢 Send response FIRST to avoid timeout
+    res.json({ success: true, message: "Booking Created" });
+
+    // 🟢 Then handle emails in background (don't await)
     if (EMAIL_ENABLED) {
-      console.log("createBooking: SENDING EMAILS (Local Mode)");
+      console.log("createBooking: SENDING EMAILS IN BACKGROUND");
       
       // Get user details for email
       const userData = await User.findById(_id);
 
-      // Email to User (booker)
-      try {
-        console.log("createBooking: sending email to user:", userData?.email);
-        await sendEmail({
-          to: userData.email,
-          subject: "Car Booking Created on Ridemate",
-          html: `
-            <h3>Car Booking Created</h3>
-            <p>Your booking has been created. We will update you once the car owner confirms your booking.</p>
-            <p><b>Car:</b> ${carData.brand} ${carData.model}</p>
-            <p><b>Owner:</b> ${carData.owner.name}</p>
-            <p><b>Price:</b> $${price}</p>
-            <p><b>Pickup:</b> ${new Date(pickupDate).toLocaleDateString()}</p>
-            <p><b>Return:</b> ${new Date(returnDate).toLocaleDateString()}</p>
-            <p><b>Status:</b> ${booking.status}</p>
-          `,
-        });
+      // Email to User - fire and forget
+      sendEmail({
+        to: userData.email,
+        subject: "Car Booking Created on Ridemate",
+        html: `
+          <h3>Car Booking Created</h3>
+          <p>Your booking has been created. We will update you once the car owner confirms your booking.</p>
+          <p><b>Car:</b> ${carData.brand} ${carData.model}</p>
+          <p><b>Owner:</b> ${carData.owner.name}</p>
+          <p><b>Price:</b> $${price}</p>
+          <p><b>Pickup:</b> ${new Date(pickupDate).toLocaleDateString()}</p>
+          <p><b>Return:</b> ${new Date(returnDate).toLocaleDateString()}</p>
+          <p><b>Status:</b> ${booking.status}</p>
+        `,
+      }).then(() => {
         console.log("createBooking: user email sent successfully");
-      } catch (emailErrUser) {
-        console.log("createBooking: failed to send email to user ->", emailErrUser?.message);
-      }
+      }).catch(err => {
+        console.log("createBooking: failed to send email to user ->", err?.message);
+      });
 
-      // Email to Owner
-      try {
-        console.log("createBooking: sending email to owner:", carData.owner?.email);
-        await sendEmail({
-          to: carData.owner.email,
-          subject: "New Booking Received on Ridemate",
-          html: `
-            <h3>New Booking Received</h3>
-            <p>Your car <b>${carData.brand} ${carData.model}</b> has been booked by ${userData.name}.</p>
-            <p>Please update the booking status.</p>
-            <p><b>Car:</b> ${carData.brand} ${carData.model}</p>
-            <p><b>Price:</b> $${price}</p>
-            <p><b>Pickup:</b> ${new Date(pickupDate).toLocaleDateString()}</p>
-            <p><b>Return:</b> ${new Date(returnDate).toLocaleDateString()}</p>
-            <p><b>Status:</b> ${booking.status}</p>
-          `,
-        });
+      // Email to Owner - fire and forget
+      sendEmail({
+        to: carData.owner.email,
+        subject: "New Booking Received on Ridemate",
+        html: `
+          <h3>New Booking Received</h3>
+          <p>Your car <b>${carData.brand} ${carData.model}</b> has been booked by ${userData.name}.</p>
+          <p>Please update the booking status.</p>
+          <p><b>Car:</b> ${carData.brand} ${carData.model}</p>
+          <p><b>Price:</b> $${price}</p>
+          <p><b>Pickup:</b> ${new Date(pickupDate).toLocaleDateString()}</p>
+          <p><b>Return:</b> ${new Date(returnDate).toLocaleDateString()}</p>
+          <p><b>Status:</b> ${booking.status}</p>
+        `,
+      }).then(() => {
         console.log("createBooking: owner email sent successfully");
-      } catch (emailErrOwner) {
-        console.log("createBooking: failed to send email to owner ->", emailErrOwner?.message);
-      }
-    } else {
-      console.log("createBooking: EMAILS DISABLED (Deployed Mode)");
+      }).catch(err => {
+        console.log("createBooking: failed to send email to owner ->", err?.message);
+      });
     }
-
-    // Final response
-    res.json({ success: true, message: "Booking Created" });
   } catch (error) {
     console.error("createBooking: caught error ->", error?.message || error);
     res.json({ success: false, message: error.message });
@@ -296,9 +290,12 @@ export const changeBookingStatus = async (req, res) => {
     booking.status = status;
     await booking.save();
 
-    // 🟢 DUAL MODE EMAIL HANDLING
+    // 🟢 Send response FIRST
+    res.json({ success: true, message: "Status updated", booking });
+
+    // 🟢 Handle email in background
     if (EMAIL_ENABLED) {
-      console.log("changeBookingStatus: SENDING STATUS EMAIL (Local Mode)");
+      console.log("changeBookingStatus: SENDING STATUS EMAIL IN BACKGROUND");
       
       let subject, message;
       if (status === "confirmed") {
@@ -312,30 +309,25 @@ export const changeBookingStatus = async (req, res) => {
         message = `Your booking status changed to ${status}.`;
       }
 
-      try {
-        await sendEmail({
-          to: booking.user.email,
-          subject,
-          html: `
-            <h3>${subject}</h3>
-            <p>${message}</p>
-            <p><b>Car:</b> ${booking.car.brand} ${booking.car.model}</p>
-            <p><b>Owner:</b> ${booking.owner.name}</p>
-            <p><b>Price:</b> $${booking.price}</p>
-            <p><b>Pickup:</b> ${new Date(booking.pickupDate).toLocaleDateString()}</p>
-            <p><b>Return:</b> ${new Date(booking.returnDate).toLocaleDateString()}</p>
-            <p><b>Status:</b> ${booking.status}</p>
-          `,
-        });
+      sendEmail({
+        to: booking.user.email,
+        subject,
+        html: `
+          <h3>${subject}</h3>
+          <p>${message}</p>
+          <p><b>Car:</b> ${booking.car.brand} ${booking.car.model}</p>
+          <p><b>Owner:</b> ${booking.owner.name}</p>
+          <p><b>Price:</b> $${booking.price}</p>
+          <p><b>Pickup:</b> ${new Date(booking.pickupDate).toLocaleDateString()}</p>
+          <p><b>Return:</b> ${new Date(booking.returnDate).toLocaleDateString()}</p>
+          <p><b>Status:</b> ${booking.status}</p>
+        `,
+      }).then(() => {
         console.log("changeBookingStatus: status email sent successfully");
-      } catch (emailError) {
-        console.log("changeBookingStatus: failed to send status email ->", emailError?.message);
-      }
-    } else {
-      console.log("changeBookingStatus: EMAILS DISABLED (Deployed Mode)");
+      }).catch(err => {
+        console.log("changeBookingStatus: failed to send status email ->", err?.message);
+      });
     }
-
-    res.json({ success: true, message: "Status updated", booking });
   } catch (error) {
     console.log(error.message);
     res.json({ success: false, message: error.message });
@@ -383,51 +375,52 @@ export const deleteBooking = async (req, res) => {
     await Booking.findByIdAndDelete(bookingId);
     console.log("✅ Booking deleted successfully");
 
-    // 🟢 DUAL MODE EMAIL HANDLING
-    if (EMAIL_ENABLED) {
-      console.log("deleteBooking: SENDING DELETION EMAILS (Local Mode)");
-
-      try {
-        if (isOwner || isAdmin) {
-          await sendEmail({
-            to: bookingDetails.userEmail,
-            subject: "Your Booking Has Been Cancelled - Ridemate",
-            html: `
-              <h3>Booking Cancelled</h3>
-              <p>Your booking has been cancelled by ${bookingDetails.deletedBy}.</p>
-              <p><b>Car:</b> ${bookingDetails.car}</p>
-              <p><b>Price:</b> $${bookingDetails.price}</p>
-              <p><b>Pickup Date:</b> ${new Date(bookingDetails.pickupDate).toLocaleDateString()}</p>
-              <p><b>Return Date:</b> ${new Date(bookingDetails.returnDate).toLocaleDateString()}</p>
-            `,
-          });
-        } else if (isUser) {
-          await sendEmail({
-            to: bookingDetails.ownerEmail,
-            subject: "Booking Cancelled by User - Ridemate",
-            html: `
-              <h3>Booking Cancelled</h3>
-              <p>User ${bookingDetails.userName} has cancelled their booking for your car.</p>
-              <p><b>Car:</b> ${bookingDetails.car}</p>
-              <p><b>Price:</b> $${bookingDetails.price}</p>
-              <p><b>Pickup Date:</b> ${new Date(bookingDetails.pickupDate).toLocaleDateString()}</p>
-              <p><b>Return Date:</b> ${new Date(bookingDetails.returnDate).toLocaleDateString()}</p>
-            `,
-          });
-        }
-        console.log("deleteBooking: deletion emails sent successfully");
-      } catch (emailError) {
-        console.error("deleteBooking: failed to send deletion emails:", emailError.message);
-      }
-    } else {
-      console.log("deleteBooking: EMAILS DISABLED (Deployed Mode)");
-    }
-
-    return res.json({ 
+    // 🟢 Send response FIRST
+    res.json({ 
       success: true, 
       message: "Booking deleted successfully"
     });
 
+    // 🟢 Handle emails in background
+    if (EMAIL_ENABLED) {
+      console.log("deleteBooking: SENDING DELETION EMAILS IN BACKGROUND");
+
+      if (isOwner || isAdmin) {
+        sendEmail({
+          to: bookingDetails.userEmail,
+          subject: "Your Booking Has Been Cancelled - Ridemate",
+          html: `
+            <h3>Booking Cancelled</h3>
+            <p>Your booking has been cancelled by ${bookingDetails.deletedBy}.</p>
+            <p><b>Car:</b> ${bookingDetails.car}</p>
+            <p><b>Price:</b> $${bookingDetails.price}</p>
+            <p><b>Pickup Date:</b> ${new Date(bookingDetails.pickupDate).toLocaleDateString()}</p>
+            <p><b>Return Date:</b> ${new Date(bookingDetails.returnDate).toLocaleDateString()}</p>
+          `,
+        }).then(() => {
+          console.log("deleteBooking: user notification email sent");
+        }).catch(err => {
+          console.log("deleteBooking: failed to send user email ->", err?.message);
+        });
+      } else if (isUser) {
+        sendEmail({
+          to: bookingDetails.ownerEmail,
+          subject: "Booking Cancelled by User - Ridemate",
+          html: `
+            <h3>Booking Cancelled</h3>
+            <p>User ${bookingDetails.userName} has cancelled their booking for your car.</p>
+            <p><b>Car:</b> ${bookingDetails.car}</p>
+            <p><b>Price:</b> $${bookingDetails.price}</p>
+            <p><b>Pickup Date:</b> ${new Date(bookingDetails.pickupDate).toLocaleDateString()}</p>
+            <p><b>Return Date:</b> ${new Date(bookingDetails.returnDate).toLocaleDateString()}</p>
+          `,
+        }).then(() => {
+          console.log("deleteBooking: owner notification email sent");
+        }).catch(err => {
+          console.log("deleteBooking: failed to send owner email ->", err?.message);
+        });
+      }
+    }
   } catch (error) {
     console.error("🔥 Error deleting booking:", error);
     return res.json({ success: false, message: error.message });
